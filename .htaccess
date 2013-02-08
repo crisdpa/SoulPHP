@@ -1,0 +1,45 @@
+Options +FollowSymLinks
+RewriteEngine On
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+RewriteCond %{QUERY_STRING} base64_encode[^(]*\([^)]*\) [OR]
+RewriteCond %{QUERY_STRING} (<|%3C)([^s]*s)+cript.*(>|%3E) [NC,OR]
+RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
+
+#URL for webservices
+#RewriteEngine On
+RewriteRule ^(ws)/([a-zA-Z0-9_-]+).json$ index.php?action=webservices&task=$1 [L]
+
+RewriteEngine On
+RewriteRule ^([a-zA-Z0-9_-]+)$ index.php?section=$1
+RewriteRule ^([a-zA-Z0-9_-]+)/$ index.php?section=$1
+ 
+RewriteEngine On
+RewriteRule ^([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)$ index.php?section=$1&item=$2
+RewriteRule ^([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/$ index.php?section=$1&item=$2
+
+RewriteEngine On
+RewriteRule ^([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)$ index.php?section=$1&item=$2&option=$3
+RewriteRule ^([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/$ index.php?section=$1&item=$2&option=$3
+
+RewriteEngine On
+RewriteRule ^([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)$ index.php?section=$1&item=$2&option=$3&page=$4
+RewriteRule ^([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/([a-zA-Z0-9_-]+)/$ index.php?section=$1&item=$2&option=$3&page=$4
+
+#This Helps to avoid lost third party cookies in Internet Explorer like Facebook Apps
+<ifModule mod_headers.c>
+	Header set P3P "policyref=\"/w3c/p3p.xml\", CP=\"IDC DSP COR ADM DEVi TAIi PSA PSD IVAi IVDi CONi HIS OUR IND CNT\""
+</ifModule>
+
+#Force to encode files in utf8 encoding
+<FilesMatch "\.(htm|html|css|js)$">
+	AddDefaultCharset UTF-8
+</FilesMatch>
+
+#Reduce pages weight by compressing static data
+AddOutputFilterByType DEFLATE text/html text/plain text/xml application/xml application/xhtml+xml text/javascript text/css application/x-javascript
+BrowserMatch ^Mozilla/4 gzip-only-text/html
+BrowserMatch ^Mozilla/4.0[678] no-gzip
+BrowserMatch bMSIE !no-gzip !gzip-only-text/html
