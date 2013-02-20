@@ -53,10 +53,12 @@
 		
 		
 		public function query($query,$type=""){
+			
+			$this -> connect();
 		
 			$this->_recordset = mysql_query($query, $this->_connection) or die(mysql_error());
 			
-			if($type == "select"){
+			if(empty($type)){
 			
 				$this->_row = mysql_fetch_object($this->_recordset);	
 				return $this->_row;
@@ -80,5 +82,99 @@
 			
 		}
 		
+		
+		
+		public function select($table,$params = array()){
+			
+			if(count($params) == 0){
+				
+				$params['fields'] = '*';
+				$params['limit'] = '';
+				$params['order'] = '';
+				$params['conditions'] = '';
+				
+			}
+			else{
+				
+				$params['fields'] = array_key_exists('fields',$params)?$params['fields']:'*';
+				$params['limit'] = array_key_exists('limit',$params)?$params['limit']:'';
+				$params['order'] = array_key_exists('order',$params)?$params['order']:'';
+				$params['conditions'] = array_key_exists('conditions',$params)?$params['conditions']:'';
+				
+			}
+			
+			
+			//Limit
+			if(empty($params['limit'])){ $limit_query = ''; }
+			else{  $limit_query = " LIMIT {$params['limit']}";}
+			
+			//Fields
+			if(is_array($params['fields'])){ $fields_query = join(",",$params['fields']); }
+			else if($params['fields'] == 'count'){ $fields_query = 'COUNT(*) as total'; $limit_query = ' LIMIT 1'; }
+			else{ $fields_query = $params['fields'];}
+					
+			//Ordering
+			if(is_array($params['order'])){ 
+				
+				$ordering_fields = array();
+				
+				foreach($params['order'] as $field => $ordering){
+					$ordering_fields[] = $field." ".$ordering;
+				}
+				
+				$order_query = ' ORDER BY '.join(',',$ordering_fields);
+				
+			}
+			else{  $order_query = '';}
+			
+			
+			//Conditions
+			if(is_array($params['conditions'])){ 
+				
+				$conditions_fields = array();
+				$counter = 0;
+				
+				foreach($params['conditions'] as $conditional => $condition){
+					
+					if($counter == 0){
+						$conditions_query .= "WHERE ".$condition.' ';
+					}
+					else{
+						$conditions_query .= $conditional." ".$condition.' ';
+					}
+					
+					$counter++;
+				}
+				
+				
+			}
+			else{  $conditions_query = '';}
+			
+			//Perform query
+			
+			$sqlTable = "SELECT {$fields_query}
+						 FROM {$table}
+						 {$conditions_query}
+						 {$order_query}
+						 {$limit_query}";
+			
+			if($params['fields'] == 'count'){
+				$result_tmp = $this -> query($sqlTable);
+				$result = $result_tmp -> total;
+			}
+			else if($params['limit'] == 1){
+				$result = $this -> query($sqlTable);
+			}
+			else{
+				$result = $this -> query($sqlTable,'list');	
+			}
+				 
+			return $result;		 
+			
+			
+		}
+		
 	}
+	
+
 ?>
