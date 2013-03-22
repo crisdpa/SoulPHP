@@ -23,9 +23,6 @@
 		 var $_password;
 		 var $_connection;
 		
-		 var $_recordset;
-		 var $_row;
-		
 		
 		public function QueryClass($db_connection){
 		
@@ -38,53 +35,66 @@
 		
 		
 		public function connect(){
-		
-			$this->_connection = mysql_pconnect(
-													$this->_hostname, 
-													$this->_username,
-													$this->_password) 
-													or trigger_error(mysql_error(), E_USER_ERROR
-												);
+	
 			
-			mysql_select_db($this->_database, $this->_connection) or trigger_error(mysql_error(), E_USER_ERROR);
-			mysql_query("SET NAMES utf8", $this->_connection) or die(mysql_error());
+			$this->_connection = new mysqli('p:'.$this->_hostname, $this->_username, $this->_password, $this->_database);
+			
+			if (mysqli_connect_error()) {
+				die('SoulPHP - BD Error: ('.mysqli_connect_errno().') '.mysqli_connect_error());
+			}
+			
+			$this->_connection -> query("SET NAMES utf8");
+	
 			
 		}
 		
 		
-		public function query($query,$type=""){
+		public function query($query, $type = "", $die = true){
 			
 			$this -> connect();
-		
-			$this->_recordset = mysql_query($query, $this->_connection) or die(mysql_error());
 			
-			if(empty($type)){
-			
-				$this->_row = mysql_fetch_object($this->_recordset);	
-				return $this->_row;
+			if ($result = $this->_connection -> query($query)){
 				
-			}
-			
-			else if($type == "list"){
 				
-				$list = array();
+				if(empty($type)){
+					
+					if($result === TRUE){ return true; }
+					else { return mysqli_fetch_object($result); }
 				
-				while($this->_row = mysql_fetch_object($this->_recordset)){
-					$list[] = $this->_row;
 				}
 				
-				return $list;
+				else if($type == "list"){
+					
+					$list = array();
+					
+					while($row = mysqli_fetch_object($result)){
+						$list[] = $row;
+					}
+					
+					return $list;
+					
+				}
+				
+				$result -> close();
 				
 			}
+			else{
+				if($die){
+					die('SoulPHP - BD Error: '.$this->_connection -> error);
+				}
+				else{
+					return false;	
+				}
+			}
 			
-			mysql_free_result($this->_recordset);
-			
+			$this->_connection -> close();
+		
 			
 		}
 		
 		
 		
-		public function select($table,$params = array()){
+		public function select($table, $params = array(), $die = true){
 			
 			if(count($params) == 0){
 				
@@ -159,20 +169,78 @@
 						 {$limit_query}";
 			
 			if($params['fields'] == 'count'){
-				$result_tmp = $this -> query($sqlTable);
+				$result_tmp = $this -> query($sqlTable,'',$die);
 				$result = $result_tmp -> total;
 			}
 			else if($params['limit'] == 1){
-				$result = $this -> query($sqlTable);
+				$result = $this -> query($sqlTable,'',$die);
 			}
 			else{
-				$result = $this -> query($sqlTable,'list');	
+				$result = $this -> query($sqlTable,'list',$die);	
 			}
 				 
 			return $result;		 
 			
 			
 		}
+		
+		
+		
+		public function delete($table, $params = array(), $die = true){
+			
+			if(count($params) == 0){
+				
+				$params['conditions'] = '';
+				$params['limit'] = '';
+				
+			}
+			else{
+				
+				$params['limit'] = array_key_exists('limit',$params)?$params['limit']:'';
+				$params['conditions'] = array_key_exists('conditions',$params)?$params['conditions']:'';
+				
+			}
+			
+			//Limit
+			if(empty($params['limit'])){ $limit_query = ''; }
+			else{  $limit_query = " LIMIT {$params['limit']}";}
+			
+			
+			//Conditions
+			if(is_array($params['conditions'])){ 
+				
+				$conditions_fields = array();
+				$counter = 0;
+				
+				foreach($params['conditions'] as $conditional => $condition){
+					
+					if($counter == 0){
+						$conditions_query .= "WHERE ".$condition.' ';
+					}
+					else{
+						$conditions_query .= $conditional." ".$condition.' ';
+					}
+					
+					$counter++;
+				}
+				
+				
+			}
+			else{  $conditions_query = '';}
+			
+			//Perform query
+			
+			$sqlTable = "DELETE FROM {$table}
+						 {$conditions_query}
+						 {$limit_query}";
+						 
+			$result = $this -> query($sqlTable,'',$die);
+			
+			return $result;
+			
+			
+		}
+		
 		
 	}
 	
