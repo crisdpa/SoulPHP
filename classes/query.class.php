@@ -172,7 +172,7 @@
 				$result_tmp = $this -> query($sqlTable,'',$die);
 				$result = $result_tmp -> total;
 			}
-			else if($params['limit'] == 1){
+			else if($params['limit'] == '1'){
 				$result = $this -> query($sqlTable,'',$die);
 			}
 			else{
