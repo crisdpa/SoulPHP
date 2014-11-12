@@ -92,7 +92,7 @@
 			global $db;
 			
 			$tplModule = new XTemplate("modules/".$module."/templates/default.html");
-			require_once("modules/".$module."/index.php");
+			require("modules/".$module."/index.php");
 			$tplModule -> parse("main");
 			return $tplModule -> render("main");
 			
